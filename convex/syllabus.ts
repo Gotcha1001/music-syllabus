@@ -2,10 +2,6 @@
 // import { mutation, query } from "./_generated/server";
 // import { Id } from "./_generated/dataModel";
 
-// // ============================================================================
-// // TYPES
-// // ============================================================================
-
 // export type SyllabusCategory = "songs" | "booklet" | "clapping" | "test";
 
 // export interface YoutubeSong {
@@ -19,41 +15,12 @@
 // // ============================================================================
 
 // export const getByGradeAndTerm = query({
-//   args: {
-//     grade: v.string(),
-//     term: v.number(),
-//   },
+//   args: { grade: v.string(), term: v.number() },
 //   handler: async (ctx, { grade, term }) => {
 //     return await ctx.db
 //       .query("syllabusContent")
 //       .withIndex("by_grade_term", (q) => q.eq("grade", grade).eq("term", term))
 //       .filter((q) => q.eq(q.field("isActive"), true))
-//       .collect();
-//   },
-// });
-
-// export const getByCategory = query({
-//   args: {
-//     category: v.union(
-//       v.literal("songs"),
-//       v.literal("booklet"),
-//       v.literal("clapping"),
-//       v.literal("test"),
-//     ),
-//     grade: v.optional(v.string()),
-//   },
-//   handler: async (ctx, { category, grade }) => {
-//     let q = ctx.db
-//       .query("syllabusContent")
-//       .withIndex("by_category", (q) => q.eq("category", category));
-
-//     if (grade) {
-//       q = q.filter((q) => q.eq(q.field("grade"), grade));
-//     }
-
-//     return await q
-//       .filter((q) => q.eq(q.field("isActive"), true))
-//       .order("desc")
 //       .collect();
 //   },
 // });
@@ -67,17 +34,19 @@
 //   },
 // });
 
+// export const getAll = query({
+//   handler: async (ctx) => {
+//     return await ctx.db.query("syllabusContent").order("desc").collect();
+//   },
+// });
+
 // export const getById = query({
 //   args: { id: v.id("syllabusContent") },
-//   handler: async (ctx, { id }) => {
-//     return await ctx.db.get(id);
-//   },
+//   handler: async (ctx, { id }) => await ctx.db.get(id),
 // });
 
 // // ============================================================================
 // // MUTATIONS
-// // Access is controlled by the admin password in the UI — any logged-in
-// // Clerk user can call these, but the admin panel is password-gated.
 // // ============================================================================
 
 // export const upsert = mutation({
@@ -118,31 +87,65 @@
 
 //     const now = Date.now();
 
-//     const commonFields = {
+//     // Build update fields without using `any`
+//     const updateFields: {
+//       grade: string;
+//       term: number;
+//       category: SyllabusCategory;
+//       title: string;
+//       description?: string;
+//       youtubeLinks?: YoutubeSong[];
+//       workingBookletDriveId?: string;
+//       workingBookletViewLink?: string;
+//       answerBookletDriveId?: string;
+//       answerBookletViewLink?: string;
+//       clappingPdfDriveId?: string;
+//       clappingPdfViewLink?: string;
+//       testPdfDriveId?: string;
+//       testPdfViewLink?: string;
+//       uploadedBy: string;
+//       uploadedAt: number;
+//       isActive: boolean;
+//     } = {
 //       grade: args.grade,
 //       term: args.term,
 //       category: args.category,
 //       title: args.title,
 //       description: args.description,
-//       youtubeLinks: args.youtubeLinks,
-//       workingBookletDriveId: args.workingBookletDriveId,
-//       workingBookletViewLink: args.workingBookletViewLink,
-//       answerBookletDriveId: args.answerBookletDriveId,
-//       answerBookletViewLink: args.answerBookletViewLink,
-//       clappingPdfDriveId: args.clappingPdfDriveId,
-//       clappingPdfViewLink: args.clappingPdfViewLink,
-//       testPdfDriveId: args.testPdfDriveId,
-//       testPdfViewLink: args.testPdfViewLink,
-//       isActive: args.isActive ?? true,
-//       uploadedBy: identity.subject, // store clerk ID directly, no users table lookup
+//       uploadedBy: identity.subject,
 //       uploadedAt: now,
+//       isActive: args.isActive ?? true,
 //     };
 
+//     // Only include fields that were explicitly passed
+//     if (args.youtubeLinks !== undefined) {
+//       updateFields.youtubeLinks = args.youtubeLinks;
+//     }
+
+//     if (args.workingBookletDriveId !== undefined) {
+//       updateFields.workingBookletDriveId = args.workingBookletDriveId;
+//       updateFields.workingBookletViewLink = args.workingBookletViewLink;
+//     }
+//     if (args.answerBookletDriveId !== undefined) {
+//       updateFields.answerBookletDriveId = args.answerBookletDriveId;
+//       updateFields.answerBookletViewLink = args.answerBookletViewLink;
+//     }
+//     if (args.clappingPdfDriveId !== undefined) {
+//       updateFields.clappingPdfDriveId = args.clappingPdfDriveId;
+//       updateFields.clappingPdfViewLink = args.clappingPdfViewLink;
+//     }
+//     if (args.testPdfDriveId !== undefined) {
+//       updateFields.testPdfDriveId = args.testPdfDriveId;
+//       updateFields.testPdfViewLink = args.testPdfViewLink;
+//     }
+
 //     if (args.id) {
-//       await ctx.db.patch(args.id, commonFields);
+//       // UPDATE
+//       await ctx.db.patch(args.id, updateFields);
 //       return { success: true, id: args.id, action: "updated" };
 //     } else {
-//       const newId = await ctx.db.insert("syllabusContent", commonFields);
+//       // CREATE
+//       const newId = await ctx.db.insert("syllabusContent", updateFields);
 //       return { success: true, id: newId, action: "created" };
 //     }
 //   },
@@ -167,28 +170,9 @@
 //     return { success: true };
 //   },
 // });
-
-// export const toggleActive = mutation({
-//   args: { id: v.id("syllabusContent") },
-//   handler: async (ctx, { id }) => {
-//     const identity = await ctx.auth.getUserIdentity();
-//     if (!identity) throw new Error("Unauthorized");
-//     const item = await ctx.db.get(id);
-//     if (!item) throw new Error("Item not found");
-//     await ctx.db.patch(id, { isActive: !item.isActive });
-//     return { success: true, isActive: !item.isActive };
-//   },
-// });
-
-// export const getAll = query({
-//   handler: async (ctx) => {
-//     return await ctx.db.query("syllabusContent").order("desc").collect();
-//   },
-// });
-
+// convex/syllabus.ts
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 
 export type SyllabusCategory = "songs" | "booklet" | "clapping" | "test";
 
@@ -196,6 +180,12 @@ export interface YoutubeSong {
   title: string;
   url: string;
   duration?: string;
+}
+
+export interface TeachingLink {
+  title: string;
+  url: string;
+  description?: string;
 }
 
 // ============================================================================
@@ -250,6 +240,8 @@ export const upsert = mutation({
     ),
     title: v.string(),
     description: v.optional(v.string()),
+
+    // Songs
     youtubeLinks: v.optional(
       v.array(
         v.object({
@@ -259,23 +251,51 @@ export const upsert = mutation({
         }),
       ),
     ),
+
+    // NEW: Extra teaching YouTube links
+    teachingLinks: v.optional(
+      v.array(
+        v.object({
+          title: v.string(),
+          url: v.string(),
+          description: v.optional(v.string()),
+        }),
+      ),
+    ),
+
+    // Booklet PDFs
     workingBookletDriveId: v.optional(v.string()),
     workingBookletViewLink: v.optional(v.string()),
     answerBookletDriveId: v.optional(v.string()),
     answerBookletViewLink: v.optional(v.string()),
+
+    // NEW: Mini booklet
+    miniBookletDriveId: v.optional(v.string()),
+    miniBookletViewLink: v.optional(v.string()),
+    miniBookletTitle: v.optional(v.string()),
+
+    // Clapping
     clappingPdfDriveId: v.optional(v.string()),
     clappingPdfViewLink: v.optional(v.string()),
+
+    // Test
     testPdfDriveId: v.optional(v.string()),
     testPdfViewLink: v.optional(v.string()),
+
+    // NEW: Test scope PDF
+    testScopePdfDriveId: v.optional(v.string()),
+    testScopePdfViewLink: v.optional(v.string()),
+    testScopeTitle: v.optional(v.string()),
+
     isActive: v.optional(v.boolean()),
   },
+
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
     const now = Date.now();
 
-    // Build update fields without using `any`
     const updateFields: {
       grade: string;
       term: number;
@@ -283,14 +303,21 @@ export const upsert = mutation({
       title: string;
       description?: string;
       youtubeLinks?: YoutubeSong[];
+      teachingLinks?: TeachingLink[];
       workingBookletDriveId?: string;
       workingBookletViewLink?: string;
       answerBookletDriveId?: string;
       answerBookletViewLink?: string;
+      miniBookletDriveId?: string;
+      miniBookletViewLink?: string;
+      miniBookletTitle?: string;
       clappingPdfDriveId?: string;
       clappingPdfViewLink?: string;
       testPdfDriveId?: string;
       testPdfViewLink?: string;
+      testScopePdfDriveId?: string;
+      testScopePdfViewLink?: string;
+      testScopeTitle?: string;
       uploadedBy: string;
       uploadedAt: number;
       isActive: boolean;
@@ -305,11 +332,12 @@ export const upsert = mutation({
       isActive: args.isActive ?? true,
     };
 
-    // Only include fields that were explicitly passed
     if (args.youtubeLinks !== undefined) {
       updateFields.youtubeLinks = args.youtubeLinks;
     }
-
+    if (args.teachingLinks !== undefined) {
+      updateFields.teachingLinks = args.teachingLinks;
+    }
     if (args.workingBookletDriveId !== undefined) {
       updateFields.workingBookletDriveId = args.workingBookletDriveId;
       updateFields.workingBookletViewLink = args.workingBookletViewLink;
@@ -317,6 +345,11 @@ export const upsert = mutation({
     if (args.answerBookletDriveId !== undefined) {
       updateFields.answerBookletDriveId = args.answerBookletDriveId;
       updateFields.answerBookletViewLink = args.answerBookletViewLink;
+    }
+    if (args.miniBookletDriveId !== undefined) {
+      updateFields.miniBookletDriveId = args.miniBookletDriveId;
+      updateFields.miniBookletViewLink = args.miniBookletViewLink;
+      updateFields.miniBookletTitle = args.miniBookletTitle;
     }
     if (args.clappingPdfDriveId !== undefined) {
       updateFields.clappingPdfDriveId = args.clappingPdfDriveId;
@@ -326,19 +359,23 @@ export const upsert = mutation({
       updateFields.testPdfDriveId = args.testPdfDriveId;
       updateFields.testPdfViewLink = args.testPdfViewLink;
     }
+    if (args.testScopePdfDriveId !== undefined) {
+      updateFields.testScopePdfDriveId = args.testScopePdfDriveId;
+      updateFields.testScopePdfViewLink = args.testScopePdfViewLink;
+      updateFields.testScopeTitle = args.testScopeTitle;
+    }
 
     if (args.id) {
-      // UPDATE
       await ctx.db.patch(args.id, updateFields);
       return { success: true, id: args.id, action: "updated" };
     } else {
-      // CREATE
       const newId = await ctx.db.insert("syllabusContent", updateFields);
       return { success: true, id: newId, action: "created" };
     }
   },
 });
 
+// Soft-delete (sets isActive = false)
 export const remove = mutation({
   args: { id: v.id("syllabusContent") },
   handler: async (ctx, { id }) => {
@@ -349,12 +386,54 @@ export const remove = mutation({
   },
 });
 
+// Hard delete from DB
 export const hardDelete = mutation({
   args: { id: v.id("syllabusContent") },
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
     await ctx.db.delete(id);
+    return { success: true };
+  },
+});
+
+// ── NEW: Clear only the teaching links from a record ──
+export const clearTeachingLinks = mutation({
+  args: { id: v.id("syllabusContent") },
+  handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    await ctx.db.patch(id, { teachingLinks: undefined });
+    return { success: true };
+  },
+});
+
+// ── NEW: Clear only the mini booklet from a record ──
+export const clearMiniBooklet = mutation({
+  args: { id: v.id("syllabusContent") },
+  handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    await ctx.db.patch(id, {
+      miniBookletDriveId: undefined,
+      miniBookletViewLink: undefined,
+      miniBookletTitle: undefined,
+    });
+    return { success: true };
+  },
+});
+
+// ── NEW: Clear only the test scope PDF from a record ──
+export const clearTestScope = mutation({
+  args: { id: v.id("syllabusContent") },
+  handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    await ctx.db.patch(id, {
+      testScopePdfDriveId: undefined,
+      testScopePdfViewLink: undefined,
+      testScopeTitle: undefined,
+    });
     return { success: true };
   },
 });
