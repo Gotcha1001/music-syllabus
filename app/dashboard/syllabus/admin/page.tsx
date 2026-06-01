@@ -4,7 +4,6 @@
 // import { useQuery, useMutation } from "convex/react";
 // import { api } from "@/convex/_generated/api";
 // import { Id } from "@/convex/_generated/dataModel";
-
 // import { Button } from "@/components/ui/button";
 // import { Input } from "@/components/ui/input";
 // import { Label } from "@/components/ui/label";
@@ -18,7 +17,17 @@
 // } from "@/components/ui/select";
 // import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // import { toast } from "sonner";
-// import { Loader2, Upload, Trash2, RefreshCw } from "lucide-react";
+// import {
+//   Loader2,
+//   Upload,
+//   Trash2,
+//   RefreshCw,
+//   BookOpenCheck,
+//   FileSearch,
+//   X,
+//   Plus,
+// } from "lucide-react";
+// import { FaYoutube } from "react-icons/fa";
 
 // const grades = [
 //   "Grade R",
@@ -46,10 +55,15 @@
 //   title: string;
 //   description?: string;
 //   youtubeLinks?: { title: string; url: string; duration?: string }[];
+//   teachingLinks?: { title: string; url: string; description?: string }[];
 //   workingBookletViewLink?: string;
 //   answerBookletViewLink?: string;
+//   miniBookletViewLink?: string;
+//   miniBookletTitle?: string;
 //   clappingPdfViewLink?: string;
 //   testPdfViewLink?: string;
+//   testScopePdfViewLink?: string;
+//   testScopeTitle?: string;
 //   isActive: boolean;
 // };
 
@@ -62,27 +76,45 @@
 //     description: "",
 //   });
 
+//   // Song YouTube links
 //   const [youtubeLinks, setYoutubeLinks] = useState([{ title: "", url: "" }]);
+
+//   // Teaching / resource YouTube links (new — optional, all categories)
+//   const [teachingLinks, setTeachingLinks] = useState<
+//     { title: string; url: string; description: string }[]
+//   >([]);
+//   const [showTeachingLinks, setShowTeachingLinks] = useState(false);
+
+//   // File state
 //   const [workingFile, setWorkingFile] = useState<File | null>(null);
 //   const [answerFile, setAnswerFile] = useState<File | null>(null);
+//   // Mini booklet (new — optional)
+//   const [miniBookletFile, setMiniBookletFile] = useState<File | null>(null);
+//   const [miniBookletTitle, setMiniBookletTitle] = useState("");
+//   const [showMiniBooklet, setShowMiniBooklet] = useState(false);
+//   // Test scope (new — optional)
+//   const [testScopeFile, setTestScopeFile] = useState<File | null>(null);
+//   const [testScopeTitle, setTestScopeTitle] = useState("");
+//   const [showTestScope, setShowTestScope] = useState(false);
+
 //   const [isUploading, setIsUploading] = useState(false);
 
 //   const allContent = useQuery(api.syllabus.getAllActive) as
 //     | SyllabusItem[]
 //     | undefined;
 //   const remove = useMutation(api.syllabus.remove);
+//   const clearTeachingLinks = useMutation(api.syllabus.clearTeachingLinks);
+//   const clearMiniBooklet = useMutation(api.syllabus.clearMiniBooklet);
+//   const clearTestScope = useMutation(api.syllabus.clearTestScope);
 
-//   // Find current item based on selection
 //   const currentItem = allContent?.find(
 //     (item) =>
 //       item.grade === formData.grade &&
 //       item.term === parseInt(formData.term || "0") &&
 //       item.category === formData.category,
 //   );
-
 //   const editingId = currentItem?._id || null;
 
-//   // Populate form when user selects Grade/Term/Category
 //   const handleSelectionChange = (
 //     field: "grade" | "term" | "category",
 //     value: string,
@@ -115,6 +147,35 @@
 //           ? existing.youtubeLinks
 //           : [{ title: "", url: "" }],
 //       );
+//       // Populate teaching links if they exist
+//       if (existing.teachingLinks?.length) {
+//         setTeachingLinks(
+//           existing.teachingLinks.map((l) => ({
+//             ...l,
+//             description: l.description || "",
+//           })),
+//         );
+//         setShowTeachingLinks(true);
+//       } else {
+//         setTeachingLinks([]);
+//         setShowTeachingLinks(false);
+//       }
+//       // Mini booklet
+//       if (existing.miniBookletViewLink) {
+//         setMiniBookletTitle(existing.miniBookletTitle || "");
+//         setShowMiniBooklet(true);
+//       } else {
+//         setMiniBookletTitle("");
+//         setShowMiniBooklet(false);
+//       }
+//       // Test scope
+//       if (existing.testScopePdfViewLink) {
+//         setTestScopeTitle(existing.testScopeTitle || "");
+//         setShowTestScope(true);
+//       } else {
+//         setTestScopeTitle("");
+//         setShowTestScope(false);
+//       }
 //     } else {
 //       setFormData((prev) => ({
 //         ...prev,
@@ -123,10 +184,18 @@
 //         description: "",
 //       }));
 //       setYoutubeLinks([{ title: "", url: "" }]);
+//       setTeachingLinks([]);
+//       setShowTeachingLinks(false);
+//       setMiniBookletTitle("");
+//       setShowMiniBooklet(false);
+//       setTestScopeTitle("");
+//       setShowTestScope(false);
 //     }
 
 //     setWorkingFile(null);
 //     setAnswerFile(null);
+//     setMiniBookletFile(null);
+//     setTestScopeFile(null);
 //   };
 
 //   const handleInputChange = (
@@ -135,6 +204,7 @@
 //     setFormData({ ...formData, [e.target.name]: e.target.value });
 //   };
 
+//   // ── Song YouTube helpers ──
 //   const handleYoutubeChange = (
 //     index: number,
 //     field: "title" | "url",
@@ -144,11 +214,28 @@
 //     updated[index][field] = value;
 //     setYoutubeLinks(updated);
 //   };
-
 //   const addYoutubeField = () =>
 //     setYoutubeLinks([...youtubeLinks, { title: "", url: "" }]);
 //   const removeYoutubeField = (index: number) =>
 //     setYoutubeLinks(youtubeLinks.filter((_, i) => i !== index));
+
+//   // ── Teaching link helpers ──
+//   const addTeachingLink = () =>
+//     setTeachingLinks([
+//       ...teachingLinks,
+//       { title: "", url: "", description: "" },
+//     ]);
+//   const removeTeachingLink = (index: number) =>
+//     setTeachingLinks(teachingLinks.filter((_, i) => i !== index));
+//   const updateTeachingLink = (
+//     index: number,
+//     field: "title" | "url" | "description",
+//     value: string,
+//   ) => {
+//     const updated = [...teachingLinks];
+//     updated[index][field] = value;
+//     setTeachingLinks(updated);
+//   };
 
 //   const resetForm = () => {
 //     setFormData({
@@ -159,8 +246,16 @@
 //       description: "",
 //     });
 //     setYoutubeLinks([{ title: "", url: "" }]);
+//     setTeachingLinks([]);
+//     setShowTeachingLinks(false);
 //     setWorkingFile(null);
 //     setAnswerFile(null);
+//     setMiniBookletFile(null);
+//     setMiniBookletTitle("");
+//     setShowMiniBooklet(false);
+//     setTestScopeFile(null);
+//     setTestScopeTitle("");
+//     setShowTestScope(false);
 //   };
 
 //   const handleDelete = async () => {
@@ -171,9 +266,11 @@
 //     resetForm();
 //   };
 
+//   // ── Generic file upload helper ──
 //   const uploadFile = async (
 //     file: File,
-//     bookletType: "working" | "answer" | "single",
+//     bookletType: "working" | "answer" | "mini" | "single" | "testScope",
+//     extra?: Record<string, string>,
 //   ) => {
 //     const uploadForm = new FormData();
 //     uploadForm.append("title", formData.title);
@@ -184,14 +281,29 @@
 //     if (formData.description)
 //       uploadForm.append("description", formData.description);
 //     if (editingId) uploadForm.append("id", editingId.toString());
-
 //     uploadForm.append("file", file);
+//     if (extra) {
+//       Object.entries(extra).forEach(([k, v]) => uploadForm.append(k, v));
+//     }
+//     return fetch("/api/upload-syllabus", { method: "POST", body: uploadForm });
+//   };
 
-//     const response = await fetch("/api/upload-syllabus", {
-//       method: "POST",
-//       body: uploadForm,
-//     });
-//     return response;
+//   // ── Upload teaching links (no file) ──
+//   const uploadTeachingLinks = async () => {
+//     const uploadForm = new FormData();
+//     uploadForm.append("title", formData.title);
+//     uploadForm.append("grade", formData.grade);
+//     uploadForm.append("term", formData.term);
+//     uploadForm.append("category", formData.category);
+//     uploadForm.append("bookletType", "single");
+//     if (formData.description)
+//       uploadForm.append("description", formData.description);
+//     if (editingId) uploadForm.append("id", editingId.toString());
+//     uploadForm.append(
+//       "teachingLinks",
+//       JSON.stringify(teachingLinks.filter((l) => l.title && l.url)),
+//     );
+//     return fetch("/api/upload-syllabus", { method: "POST", body: uploadForm });
 //   };
 
 //   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,11 +319,11 @@
 //     }
 
 //     setIsUploading(true);
-
 //     try {
+//       // ── Booklet: working + answer + optional mini ──
 //       if (formData.category === "booklet") {
-//         if (!workingFile && !answerFile && !editingId) {
-//           toast.error("Please upload at least one booklet PDF");
+//         if (!workingFile && !answerFile && !miniBookletFile && !editingId) {
+//           toast.error("Please upload at least one PDF");
 //           setIsUploading(false);
 //           return;
 //         }
@@ -223,7 +335,16 @@
 //           const res = await uploadFile(answerFile, "answer");
 //           if (!res.ok) throw new Error("Answer booklet failed");
 //         }
-//       } else if (formData.category === "songs") {
+//         if (miniBookletFile) {
+//           const res = await uploadFile(miniBookletFile, "mini", {
+//             miniBookletTitle: miniBookletTitle || "Mini Booklet",
+//           });
+//           if (!res.ok) throw new Error("Mini booklet failed");
+//         }
+//       }
+
+//       // ── Songs ──
+//       else if (formData.category === "songs") {
 //         const uploadForm = new FormData();
 //         uploadForm.append("title", formData.title);
 //         uploadForm.append("grade", formData.grade);
@@ -233,20 +354,51 @@
 //         if (formData.description)
 //           uploadForm.append("description", formData.description);
 //         if (editingId) uploadForm.append("id", editingId.toString());
-
 //         uploadForm.append(
 //           "youtubeLinks",
 //           JSON.stringify(youtubeLinks.filter((l) => l.title && l.url)),
 //         );
-
 //         const res = await fetch("/api/upload-syllabus", {
 //           method: "POST",
 //           body: uploadForm,
 //         });
 //         if (!res.ok) throw new Error("Songs upload failed");
-//       } else if (workingFile) {
+//       }
+
+//       // ── Clapping or Test (main PDF) ──
+//       else if (workingFile) {
 //         const res = await uploadFile(workingFile, "single");
 //         if (!res.ok) throw new Error("Upload failed");
+//       } else if (editingId) {
+//         // No new main file but maybe scope or teaching links — we still need to save metadata
+//         const uploadForm = new FormData();
+//         uploadForm.append("title", formData.title);
+//         uploadForm.append("grade", formData.grade);
+//         uploadForm.append("term", formData.term);
+//         uploadForm.append("category", formData.category);
+//         uploadForm.append("bookletType", "single");
+//         if (formData.description)
+//           uploadForm.append("description", formData.description);
+//         uploadForm.append("id", editingId.toString());
+//         const res = await fetch("/api/upload-syllabus", {
+//           method: "POST",
+//           body: uploadForm,
+//         });
+//         if (!res.ok) throw new Error("Update failed");
+//       }
+
+//       // ── Test scope PDF (additional, independent upload) ──
+//       if (formData.category === "test" && testScopeFile) {
+//         const res = await uploadFile(testScopeFile, "testScope", {
+//           testScopeTitle: testScopeTitle || "Test Scope",
+//         });
+//         if (!res.ok) throw new Error("Test scope upload failed");
+//       }
+
+//       // ── Teaching links (any category) ──
+//       if (showTeachingLinks && teachingLinks.some((l) => l.title && l.url)) {
+//         const res = await uploadTeachingLinks();
+//         if (!res.ok) throw new Error("Teaching links save failed");
 //       }
 
 //       toast.success(
@@ -262,18 +414,19 @@
 
 //   const isBooklet = formData.category === "booklet";
 //   const isSongs = formData.category === "songs";
+//   const isTest = formData.category === "test";
 
 //   return (
-//     <div className="max-w-4xl mx-auto py-10 px-4">
+//     <div className="max-w-4xl mx-auto py-10 px-4 space-y-6">
 //       <Card className="bg-zinc-900 border-purple-800">
 //         <CardHeader>
 //           <CardTitle className="text-3xl text-purple-400">
 //             📚 Syllabus Content Manager
 //           </CardTitle>
 //         </CardHeader>
-
 //         <CardContent className="space-y-6">
 //           <form onSubmit={handleSubmit} className="space-y-6">
+//             {/* ── Grade / Term / Category selectors ── */}
 //             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 //               <div>
 //                 <Label>Grade *</Label>
@@ -293,7 +446,6 @@
 //                   </SelectContent>
 //                 </Select>
 //               </div>
-
 //               <div>
 //                 <Label>Term *</Label>
 //                 <Select
@@ -312,7 +464,6 @@
 //                   </SelectContent>
 //                 </Select>
 //               </div>
-
 //               <div>
 //                 <Label>Category *</Label>
 //                 <Select
@@ -333,6 +484,7 @@
 //               </div>
 //             </div>
 
+//             {/* ── Title & Description ── */}
 //             <div>
 //               <Label>Title *</Label>
 //               <Input
@@ -342,84 +494,37 @@
 //                 placeholder="e.g. Grade 1 Term 2 Music Booklet"
 //               />
 //             </div>
-
 //             <div>
 //               <Label>Description</Label>
 //               <Textarea
 //                 name="description"
 //                 value={formData.description}
 //                 onChange={handleInputChange}
-//                 rows={3}
+//                 rows={2}
 //               />
 //             </div>
 
-//             {isBooklet && (
-//               <div className="p-4 bg-zinc-800 rounded-lg space-y-4">
-//                 <div>
-//                   <Label>Working Booklet PDF (without answers)</Label>
-//                   <Input
-//                     type="file"
-//                     accept=".pdf"
-//                     onChange={(e) =>
-//                       setWorkingFile(e.target.files?.[0] || null)
-//                     }
-//                   />
-//                   {workingFile && (
-//                     <p className="text-green-400 text-sm mt-1">
-//                       ✓ {workingFile.name}
-//                     </p>
-//                   )}
-//                 </div>
-//                 <div>
-//                   <Label>Answer Booklet PDF (with answers)</Label>
-//                   <Input
-//                     type="file"
-//                     accept=".pdf"
-//                     onChange={(e) => setAnswerFile(e.target.files?.[0] || null)}
-//                   />
-//                   {answerFile && (
-//                     <p className="text-green-400 text-sm mt-1">
-//                       ✓ {answerFile.name}
-//                     </p>
-//                   )}
-//                 </div>
-//               </div>
-//             )}
-
-//             {(formData.category === "clapping" ||
-//               formData.category === "test") && (
-//               <div>
-//                 <Label>Upload PDF</Label>
-//                 <Input
-//                   type="file"
-//                   accept=".pdf"
-//                   onChange={(e) => setWorkingFile(e.target.files?.[0] || null)}
-//                 />
-//                 {workingFile && (
-//                   <p className="text-green-400 text-sm mt-1">
-//                     ✓ {workingFile.name}
-//                   </p>
-//                 )}
-//               </div>
-//             )}
-
+//             {/* ── Songs: YouTube links ── */}
 //             {isSongs && (
-//               <div className="space-y-4">
+//               <div className="space-y-3 p-4 bg-zinc-800 rounded-lg">
 //                 <div className="flex justify-between items-center">
-//                   <Label>YouTube Song Links</Label>
+//                   <Label className="flex items-center gap-2">
+//                     <FaYoutube className="h-4 w-4 text-red-500" /> Song YouTube
+//                     Links
+//                   </Label>
 //                   <Button
 //                     type="button"
 //                     variant="outline"
 //                     size="sm"
 //                     onClick={addYoutubeField}
 //                   >
-//                     + Add Song
+//                     <Plus className="h-4 w-4 mr-1" /> Add Song
 //                   </Button>
 //                 </div>
 //                 {youtubeLinks.map((link, index) => (
 //                   <div
 //                     key={index}
-//                     className="grid grid-cols-1 md:grid-cols-2 gap-4"
+//                     className="grid grid-cols-1 md:grid-cols-2 gap-3"
 //                   >
 //                     <Input
 //                       placeholder="Song Title"
@@ -444,7 +549,7 @@
 //                           onClick={() => removeYoutubeField(index)}
 //                           className="text-red-400"
 //                         >
-//                           ✕
+//                           <X className="h-4 w-4" />
 //                         </Button>
 //                       )}
 //                     </div>
@@ -453,6 +558,350 @@
 //               </div>
 //             )}
 
+//             {/* ── Booklet PDFs ── */}
+//             {isBooklet && (
+//               <div className="p-4 bg-zinc-800 rounded-lg space-y-4">
+//                 <Label className="text-base font-semibold">Booklet PDFs</Label>
+//                 <div>
+//                   <Label className="text-sm">
+//                     Working Booklet PDF (without answers)
+//                   </Label>
+//                   <Input
+//                     type="file"
+//                     accept=".pdf"
+//                     onChange={(e) =>
+//                       setWorkingFile(e.target.files?.[0] || null)
+//                     }
+//                   />
+//                   {currentItem?.workingBookletViewLink && !workingFile && (
+//                     <p className="text-xs text-emerald-400 mt-1">
+//                       ✓ Current file uploaded — upload new to replace
+//                     </p>
+//                   )}
+//                   {workingFile && (
+//                     <p className="text-green-400 text-sm mt-1">
+//                       ✓ {workingFile.name}
+//                     </p>
+//                   )}
+//                 </div>
+//                 <div>
+//                   <Label className="text-sm">
+//                     Answer Booklet PDF (with answers)
+//                   </Label>
+//                   <Input
+//                     type="file"
+//                     accept=".pdf"
+//                     onChange={(e) => setAnswerFile(e.target.files?.[0] || null)}
+//                   />
+//                   {currentItem?.answerBookletViewLink && !answerFile && (
+//                     <p className="text-xs text-emerald-400 mt-1">
+//                       ✓ Current file uploaded — upload new to replace
+//                     </p>
+//                   )}
+//                   {answerFile && (
+//                     <p className="text-green-400 text-sm mt-1">
+//                       ✓ {answerFile.name}
+//                     </p>
+//                   )}
+//                 </div>
+
+//                 {/* ── NEW: Mini Booklet ── */}
+//                 <div className="border-t border-zinc-700 pt-4">
+//                   {!showMiniBooklet ? (
+//                     <Button
+//                       type="button"
+//                       variant="outline"
+//                       size="sm"
+//                       onClick={() => setShowMiniBooklet(true)}
+//                       className="text-purple-400 border-purple-700"
+//                     >
+//                       <BookOpenCheck className="h-4 w-4 mr-2" />+ Add Mini /
+//                       Short Booklet (optional)
+//                     </Button>
+//                   ) : (
+//                     <div className="space-y-3 bg-purple-950/30 p-3 rounded-lg border border-purple-800">
+//                       <div className="flex justify-between items-center">
+//                         <Label className="text-sm flex items-center gap-2">
+//                           <BookOpenCheck className="h-4 w-4 text-purple-400" />
+//                           Mini / Short Booklet PDF
+//                         </Label>
+//                         <div className="flex gap-2">
+//                           {editingId && currentItem?.miniBookletViewLink && (
+//                             <Button
+//                               type="button"
+//                               variant="ghost"
+//                               size="sm"
+//                               className="text-red-400 text-xs"
+//                               onClick={async () => {
+//                                 if (confirm("Remove mini booklet?")) {
+//                                   await clearMiniBooklet({ id: editingId });
+//                                   toast.success("Mini booklet removed");
+//                                   setShowMiniBooklet(false);
+//                                   setMiniBookletFile(null);
+//                                   setMiniBookletTitle("");
+//                                 }
+//                               }}
+//                             >
+//                               <Trash2 className="h-3 w-3 mr-1" /> Remove
+//                             </Button>
+//                           )}
+//                           <Button
+//                             type="button"
+//                             variant="ghost"
+//                             size="sm"
+//                             onClick={() => {
+//                               setShowMiniBooklet(false);
+//                               setMiniBookletFile(null);
+//                             }}
+//                           >
+//                             <X className="h-4 w-4" />
+//                           </Button>
+//                         </div>
+//                       </div>
+//                       <Input
+//                         placeholder="Mini booklet title (e.g. Quick Reference Sheet)"
+//                         value={miniBookletTitle}
+//                         onChange={(e) => setMiniBookletTitle(e.target.value)}
+//                       />
+//                       <Input
+//                         type="file"
+//                         accept=".pdf"
+//                         onChange={(e) =>
+//                           setMiniBookletFile(e.target.files?.[0] || null)
+//                         }
+//                       />
+//                       {currentItem?.miniBookletViewLink && !miniBookletFile && (
+//                         <p className="text-xs text-emerald-400">
+//                           ✓ Current mini booklet uploaded — upload new to
+//                           replace
+//                         </p>
+//                       )}
+//                       {miniBookletFile && (
+//                         <p className="text-green-400 text-sm">
+//                           ✓ {miniBookletFile.name}
+//                         </p>
+//                       )}
+//                     </div>
+//                   )}
+//                 </div>
+//               </div>
+//             )}
+
+//             {/* ── Clapping or Test main PDF ── */}
+//             {(formData.category === "clapping" || isTest) && (
+//               <div>
+//                 <Label>
+//                   {isTest ? "Term Test PDF" : "Clapping Assessment PDF"}
+//                 </Label>
+//                 <Input
+//                   type="file"
+//                   accept=".pdf"
+//                   onChange={(e) => setWorkingFile(e.target.files?.[0] || null)}
+//                 />
+//                 {currentItem && !workingFile && (
+//                   <p className="text-xs text-emerald-400 mt-1">
+//                     ✓ File already uploaded — upload new to replace
+//                   </p>
+//                 )}
+//                 {workingFile && (
+//                   <p className="text-green-400 text-sm mt-1">
+//                     ✓ {workingFile.name}
+//                   </p>
+//                 )}
+//               </div>
+//             )}
+
+//             {/* ── NEW: Test Scope PDF ── */}
+//             {isTest && (
+//               <div className="border border-zinc-700 rounded-lg p-4">
+//                 {!showTestScope ? (
+//                   <Button
+//                     type="button"
+//                     variant="outline"
+//                     size="sm"
+//                     onClick={() => setShowTestScope(true)}
+//                     className="text-emerald-400 border-emerald-800"
+//                   >
+//                     <FileSearch className="h-4 w-4 mr-2" />+ Add Test Scope PDF
+//                     (optional)
+//                   </Button>
+//                 ) : (
+//                   <div className="space-y-3">
+//                     <div className="flex justify-between items-center">
+//                       <Label className="text-sm flex items-center gap-2">
+//                         <FileSearch className="h-4 w-4 text-emerald-400" />
+//                         Test Scope / Study Guide PDF
+//                       </Label>
+//                       <div className="flex gap-2">
+//                         {editingId && currentItem?.testScopePdfViewLink && (
+//                           <Button
+//                             type="button"
+//                             variant="ghost"
+//                             size="sm"
+//                             className="text-red-400 text-xs"
+//                             onClick={async () => {
+//                               if (confirm("Remove test scope PDF?")) {
+//                                 await clearTestScope({ id: editingId });
+//                                 toast.success("Test scope removed");
+//                                 setShowTestScope(false);
+//                                 setTestScopeFile(null);
+//                                 setTestScopeTitle("");
+//                               }
+//                             }}
+//                           >
+//                             <Trash2 className="h-3 w-3 mr-1" /> Remove
+//                           </Button>
+//                         )}
+//                         <Button
+//                           type="button"
+//                           variant="ghost"
+//                           size="sm"
+//                           onClick={() => {
+//                             setShowTestScope(false);
+//                             setTestScopeFile(null);
+//                           }}
+//                         >
+//                           <X className="h-4 w-4" />
+//                         </Button>
+//                       </div>
+//                     </div>
+//                     <Input
+//                       placeholder="Scope title (e.g. Term 2 Test Scope)"
+//                       value={testScopeTitle}
+//                       onChange={(e) => setTestScopeTitle(e.target.value)}
+//                     />
+//                     <Input
+//                       type="file"
+//                       accept=".pdf"
+//                       onChange={(e) =>
+//                         setTestScopeFile(e.target.files?.[0] || null)
+//                       }
+//                     />
+//                     {currentItem?.testScopePdfViewLink && !testScopeFile && (
+//                       <p className="text-xs text-emerald-400">
+//                         ✓ Scope already uploaded — upload new to replace
+//                       </p>
+//                     )}
+//                     {testScopeFile && (
+//                       <p className="text-green-400 text-sm">
+//                         ✓ {testScopeFile.name}
+//                       </p>
+//                     )}
+//                   </div>
+//                 )}
+//               </div>
+//             )}
+
+//             {/* ── NEW: Extra Teaching / Resource YouTube Links (all categories) ── */}
+//             {formData.category && (
+//               <div className="border border-zinc-700 rounded-lg p-4">
+//                 {!showTeachingLinks ? (
+//                   <Button
+//                     type="button"
+//                     variant="outline"
+//                     size="sm"
+//                     onClick={() => {
+//                       setShowTeachingLinks(true);
+//                       if (teachingLinks.length === 0) addTeachingLink();
+//                     }}
+//                     className="text-amber-400 border-amber-800"
+//                   >
+//                     <FaYoutube className="h-4 w-4 mr-2" />+ Add Extra Teaching
+//                     YouTube Links (optional)
+//                   </Button>
+//                 ) : (
+//                   <div className="space-y-3">
+//                     <div className="flex justify-between items-center">
+//                       <Label className="flex items-center gap-2">
+//                         <FaYoutube className="h-4 w-4 text-amber-400" />
+//                         Extra Teaching / Resource Links
+//                       </Label>
+//                       <div className="flex gap-2">
+//                         {editingId && currentItem?.teachingLinks?.length && (
+//                           <Button
+//                             type="button"
+//                             variant="ghost"
+//                             size="sm"
+//                             className="text-red-400 text-xs"
+//                             onClick={async () => {
+//                               if (confirm("Remove all teaching links?")) {
+//                                 await clearTeachingLinks({ id: editingId });
+//                                 toast.success("Teaching links removed");
+//                                 setTeachingLinks([]);
+//                                 setShowTeachingLinks(false);
+//                               }
+//                             }}
+//                           >
+//                             <Trash2 className="h-3 w-3 mr-1" /> Clear All
+//                           </Button>
+//                         )}
+//                         <Button
+//                           type="button"
+//                           variant="ghost"
+//                           size="sm"
+//                           onClick={addTeachingLink}
+//                         >
+//                           <Plus className="h-4 w-4 mr-1" /> Add Link
+//                         </Button>
+//                         <Button
+//                           type="button"
+//                           variant="ghost"
+//                           size="sm"
+//                           onClick={() => setShowTeachingLinks(false)}
+//                         >
+//                           <X className="h-4 w-4" />
+//                         </Button>
+//                       </div>
+//                     </div>
+//                     {teachingLinks.map((link, index) => (
+//                       <div
+//                         key={index}
+//                         className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-zinc-800 p-3 rounded-md"
+//                       >
+//                         <Input
+//                           placeholder="Link Title"
+//                           value={link.title}
+//                           onChange={(e) =>
+//                             updateTeachingLink(index, "title", e.target.value)
+//                           }
+//                         />
+//                         <Input
+//                           placeholder="YouTube URL"
+//                           value={link.url}
+//                           onChange={(e) =>
+//                             updateTeachingLink(index, "url", e.target.value)
+//                           }
+//                         />
+//                         <div className="flex gap-2">
+//                           <Input
+//                             placeholder="Short description (optional)"
+//                             value={link.description}
+//                             onChange={(e) =>
+//                               updateTeachingLink(
+//                                 index,
+//                                 "description",
+//                                 e.target.value,
+//                               )
+//                             }
+//                           />
+//                           <Button
+//                             type="button"
+//                             variant="ghost"
+//                             size="sm"
+//                             onClick={() => removeTeachingLink(index)}
+//                             className="text-red-400 flex-shrink-0"
+//                           >
+//                             <X className="h-4 w-4" />
+//                           </Button>
+//                         </div>
+//                       </div>
+//                     ))}
+//                   </div>
+//                 )}
+//               </div>
+//             )}
+
+//             {/* ── Action buttons ── */}
 //             <div className="flex gap-4">
 //               <Button
 //                 type="submit"
@@ -470,7 +919,6 @@
 //                   </>
 //                 )}
 //               </Button>
-
 //               {editingId && (
 //                 <Button
 //                   type="button"
@@ -480,7 +928,6 @@
 //                   <Trash2 className="mr-2 h-4 w-4" /> Delete
 //                 </Button>
 //               )}
-
 //               <Button type="button" variant="outline" onClick={resetForm}>
 //                 <RefreshCw className="mr-2 h-4 w-4" /> Clear
 //               </Button>
@@ -519,6 +966,7 @@ import {
   FileSearch,
   X,
   Plus,
+  FileCheck,
 } from "lucide-react";
 import { FaYoutube } from "react-icons/fa";
 
@@ -538,13 +986,14 @@ const categories = [
   { value: "booklet", label: "Termly Booklet" },
   { value: "clapping", label: "Clapping Assessment" },
   { value: "test", label: "Term Test" },
+  { value: "youtubeLinks", label: "Extra YouTube Links" }, // NEW standalone category
 ];
 
 type SyllabusItem = {
   _id: Id<"syllabusContent">;
   grade: string;
   term: number;
-  category: "songs" | "booklet" | "clapping" | "test";
+  category: "songs" | "booklet" | "clapping" | "test" | "youtubeLinks";
   title: string;
   description?: string;
   youtubeLinks?: { title: string; url: string; duration?: string }[];
@@ -557,6 +1006,7 @@ type SyllabusItem = {
   testPdfViewLink?: string;
   testScopePdfViewLink?: string;
   testScopeTitle?: string;
+  testAnswerSheetViewLink?: string; // NEW
   isActive: boolean;
 };
 
@@ -572,33 +1022,42 @@ export default function SyllabusAdminPage() {
   // Song YouTube links
   const [youtubeLinks, setYoutubeLinks] = useState([{ title: "", url: "" }]);
 
-  // Teaching / resource YouTube links (new — optional, all categories)
+  // Extra YouTube links (standalone category)
   const [teachingLinks, setTeachingLinks] = useState<
     { title: string; url: string; description: string }[]
   >([]);
-  const [showTeachingLinks, setShowTeachingLinks] = useState(false);
 
   // File state
   const [workingFile, setWorkingFile] = useState<File | null>(null);
   const [answerFile, setAnswerFile] = useState<File | null>(null);
-  // Mini booklet (new — optional)
+
+  // Mini booklet (optional)
   const [miniBookletFile, setMiniBookletFile] = useState<File | null>(null);
   const [miniBookletTitle, setMiniBookletTitle] = useState("");
   const [showMiniBooklet, setShowMiniBooklet] = useState(false);
-  // Test scope (new — optional)
+
+  // Test scope (optional)
   const [testScopeFile, setTestScopeFile] = useState<File | null>(null);
   const [testScopeTitle, setTestScopeTitle] = useState("");
   const [showTestScope, setShowTestScope] = useState(false);
+
+  // NEW: Test answer sheet (optional)
+  const [testAnswerSheetFile, setTestAnswerSheetFile] = useState<File | null>(
+    null,
+  );
+  const [showTestAnswerSheet, setShowTestAnswerSheet] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
 
   const allContent = useQuery(api.syllabus.getAllActive) as
     | SyllabusItem[]
     | undefined;
+
   const remove = useMutation(api.syllabus.remove);
   const clearTeachingLinks = useMutation(api.syllabus.clearTeachingLinks);
   const clearMiniBooklet = useMutation(api.syllabus.clearMiniBooklet);
   const clearTestScope = useMutation(api.syllabus.clearTestScope);
+  const clearTestAnswerSheet = useMutation(api.syllabus.clearTestAnswerSheet); // NEW
 
   const currentItem = allContent?.find(
     (item) =>
@@ -606,6 +1065,7 @@ export default function SyllabusAdminPage() {
       item.term === parseInt(formData.term || "0") &&
       item.category === formData.category,
   );
+
   const editingId = currentItem?._id || null;
 
   const handleSelectionChange = (
@@ -635,12 +1095,14 @@ export default function SyllabusAdminPage() {
         title: existing.title,
         description: existing.description || "",
       });
+
       setYoutubeLinks(
         existing.youtubeLinks?.length
           ? existing.youtubeLinks
           : [{ title: "", url: "" }],
       );
-      // Populate teaching links if they exist
+
+      // Populate teaching links if they exist (used by youtubeLinks category)
       if (existing.teachingLinks?.length) {
         setTeachingLinks(
           existing.teachingLinks.map((l) => ({
@@ -648,11 +1110,10 @@ export default function SyllabusAdminPage() {
             description: l.description || "",
           })),
         );
-        setShowTeachingLinks(true);
       } else {
         setTeachingLinks([]);
-        setShowTeachingLinks(false);
       }
+
       // Mini booklet
       if (existing.miniBookletViewLink) {
         setMiniBookletTitle(existing.miniBookletTitle || "");
@@ -661,6 +1122,7 @@ export default function SyllabusAdminPage() {
         setMiniBookletTitle("");
         setShowMiniBooklet(false);
       }
+
       // Test scope
       if (existing.testScopePdfViewLink) {
         setTestScopeTitle(existing.testScopeTitle || "");
@@ -668,6 +1130,13 @@ export default function SyllabusAdminPage() {
       } else {
         setTestScopeTitle("");
         setShowTestScope(false);
+      }
+
+      // Test answer sheet
+      if (existing.testAnswerSheetViewLink) {
+        setShowTestAnswerSheet(true);
+      } else {
+        setShowTestAnswerSheet(false);
       }
     } else {
       setFormData((prev) => ({
@@ -678,17 +1147,18 @@ export default function SyllabusAdminPage() {
       }));
       setYoutubeLinks([{ title: "", url: "" }]);
       setTeachingLinks([]);
-      setShowTeachingLinks(false);
       setMiniBookletTitle("");
       setShowMiniBooklet(false);
       setTestScopeTitle("");
       setShowTestScope(false);
+      setShowTestAnswerSheet(false);
     }
 
     setWorkingFile(null);
     setAnswerFile(null);
     setMiniBookletFile(null);
     setTestScopeFile(null);
+    setTestAnswerSheetFile(null);
   };
 
   const handleInputChange = (
@@ -707,19 +1177,23 @@ export default function SyllabusAdminPage() {
     updated[index][field] = value;
     setYoutubeLinks(updated);
   };
+
   const addYoutubeField = () =>
     setYoutubeLinks([...youtubeLinks, { title: "", url: "" }]);
+
   const removeYoutubeField = (index: number) =>
     setYoutubeLinks(youtubeLinks.filter((_, i) => i !== index));
 
-  // ── Teaching link helpers ──
+  // ── Extra YouTube link helpers ──
   const addTeachingLink = () =>
     setTeachingLinks([
       ...teachingLinks,
       { title: "", url: "", description: "" },
     ]);
+
   const removeTeachingLink = (index: number) =>
     setTeachingLinks(teachingLinks.filter((_, i) => i !== index));
+
   const updateTeachingLink = (
     index: number,
     field: "title" | "url" | "description",
@@ -740,7 +1214,6 @@ export default function SyllabusAdminPage() {
     });
     setYoutubeLinks([{ title: "", url: "" }]);
     setTeachingLinks([]);
-    setShowTeachingLinks(false);
     setWorkingFile(null);
     setAnswerFile(null);
     setMiniBookletFile(null);
@@ -749,6 +1222,8 @@ export default function SyllabusAdminPage() {
     setTestScopeFile(null);
     setTestScopeTitle("");
     setShowTestScope(false);
+    setTestAnswerSheetFile(null);
+    setShowTestAnswerSheet(false);
   };
 
   const handleDelete = async () => {
@@ -762,7 +1237,13 @@ export default function SyllabusAdminPage() {
   // ── Generic file upload helper ──
   const uploadFile = async (
     file: File,
-    bookletType: "working" | "answer" | "mini" | "single" | "testScope",
+    bookletType:
+      | "working"
+      | "answer"
+      | "mini"
+      | "single"
+      | "testScope"
+      | "testAnswerSheet",
     extra?: Record<string, string>,
   ) => {
     const uploadForm = new FormData();
@@ -781,7 +1262,7 @@ export default function SyllabusAdminPage() {
     return fetch("/api/upload-syllabus", { method: "POST", body: uploadForm });
   };
 
-  // ── Upload teaching links (no file) ──
+  // ── Upload extra YouTube links (no file) ──
   const uploadTeachingLinks = async () => {
     const uploadForm = new FormData();
     uploadForm.append("title", formData.title);
@@ -801,6 +1282,7 @@ export default function SyllabusAdminPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (
       !formData.grade ||
       !formData.term ||
@@ -812,9 +1294,21 @@ export default function SyllabusAdminPage() {
     }
 
     setIsUploading(true);
+
     try {
+      // ── Extra YouTube Links (standalone category) ──
+      if (formData.category === "youtubeLinks") {
+        if (!teachingLinks.some((l) => l.title && l.url) && !editingId) {
+          toast.error("Please add at least one YouTube link");
+          setIsUploading(false);
+          return;
+        }
+        const res = await uploadTeachingLinks();
+        if (!res.ok) throw new Error("YouTube links save failed");
+      }
+
       // ── Booklet: working + answer + optional mini ──
-      if (formData.category === "booklet") {
+      else if (formData.category === "booklet") {
         if (!workingFile && !answerFile && !miniBookletFile && !editingId) {
           toast.error("Please upload at least one PDF");
           setIsUploading(false);
@@ -863,7 +1357,7 @@ export default function SyllabusAdminPage() {
         const res = await uploadFile(workingFile, "single");
         if (!res.ok) throw new Error("Upload failed");
       } else if (editingId) {
-        // No new main file but maybe scope or teaching links — we still need to save metadata
+        // No new main file — save metadata only
         const uploadForm = new FormData();
         uploadForm.append("title", formData.title);
         uploadForm.append("grade", formData.grade);
@@ -880,7 +1374,7 @@ export default function SyllabusAdminPage() {
         if (!res.ok) throw new Error("Update failed");
       }
 
-      // ── Test scope PDF (additional, independent upload) ──
+      // ── Test scope PDF (independent upload) ──
       if (formData.category === "test" && testScopeFile) {
         const res = await uploadFile(testScopeFile, "testScope", {
           testScopeTitle: testScopeTitle || "Test Scope",
@@ -888,10 +1382,10 @@ export default function SyllabusAdminPage() {
         if (!res.ok) throw new Error("Test scope upload failed");
       }
 
-      // ── Teaching links (any category) ──
-      if (showTeachingLinks && teachingLinks.some((l) => l.title && l.url)) {
-        const res = await uploadTeachingLinks();
-        if (!res.ok) throw new Error("Teaching links save failed");
+      // ── NEW: Test answer sheet PDF (independent upload) ──
+      if (formData.category === "test" && testAnswerSheetFile) {
+        const res = await uploadFile(testAnswerSheetFile, "testAnswerSheet");
+        if (!res.ok) throw new Error("Test answer sheet upload failed");
       }
 
       toast.success(
@@ -908,6 +1402,7 @@ export default function SyllabusAdminPage() {
   const isBooklet = formData.category === "booklet";
   const isSongs = formData.category === "songs";
   const isTest = formData.category === "test";
+  const isYoutubeLinks = formData.category === "youtubeLinks"; // NEW
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 space-y-6">
@@ -939,6 +1434,7 @@ export default function SyllabusAdminPage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>Term *</Label>
                 <Select
@@ -957,6 +1453,7 @@ export default function SyllabusAdminPage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>Category *</Label>
                 <Select
@@ -1051,10 +1548,106 @@ export default function SyllabusAdminPage() {
               </div>
             )}
 
+            {/* ── NEW: Extra YouTube Links (standalone category) ── */}
+            {isYoutubeLinks && (
+              <div className="space-y-3 p-4 bg-amber-950/30 border border-amber-800 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <Label className="flex items-center gap-2">
+                    <FaYoutube className="h-4 w-4 text-amber-400" />
+                    Extra Teaching YouTube Links
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTeachingLink}
+                    className="text-amber-400 border-amber-700"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Link
+                  </Button>
+                </div>
+
+                {teachingLinks.length === 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={addTeachingLink}
+                    className="text-amber-400 w-full border border-dashed border-amber-800"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add your first link
+                  </Button>
+                )}
+
+                {teachingLinks.map((link, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-zinc-800 p-3 rounded-md"
+                  >
+                    <Input
+                      placeholder="Link Title"
+                      value={link.title}
+                      onChange={(e) =>
+                        updateTeachingLink(index, "title", e.target.value)
+                      }
+                    />
+                    <Input
+                      placeholder="YouTube URL"
+                      value={link.url}
+                      onChange={(e) =>
+                        updateTeachingLink(index, "url", e.target.value)
+                      }
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Short description (optional)"
+                        value={link.description}
+                        onChange={(e) =>
+                          updateTeachingLink(
+                            index,
+                            "description",
+                            e.target.value,
+                          )
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTeachingLink(index)}
+                        className="text-red-400 flex-shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {editingId && currentItem?.teachingLinks?.length && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 text-xs"
+                    onClick={async () => {
+                      if (confirm("Remove all YouTube links?")) {
+                        await clearTeachingLinks({ id: editingId });
+                        toast.success("YouTube links removed");
+                        setTeachingLinks([]);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" /> Clear All Links
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* ── Booklet PDFs ── */}
             {isBooklet && (
               <div className="p-4 bg-zinc-800 rounded-lg space-y-4">
                 <Label className="text-base font-semibold">Booklet PDFs</Label>
+
                 <div>
                   <Label className="text-sm">
                     Working Booklet PDF (without answers)
@@ -1077,6 +1670,7 @@ export default function SyllabusAdminPage() {
                     </p>
                   )}
                 </div>
+
                 <div>
                   <Label className="text-sm">
                     Answer Booklet PDF (with answers)
@@ -1098,7 +1692,7 @@ export default function SyllabusAdminPage() {
                   )}
                 </div>
 
-                {/* ── NEW: Mini Booklet ── */}
+                {/* Mini Booklet */}
                 <div className="border-t border-zinc-700 pt-4">
                   {!showMiniBooklet ? (
                     <Button
@@ -1115,7 +1709,7 @@ export default function SyllabusAdminPage() {
                     <div className="space-y-3 bg-purple-950/30 p-3 rounded-lg border border-purple-800">
                       <div className="flex justify-between items-center">
                         <Label className="text-sm flex items-center gap-2">
-                          <BookOpenCheck className="h-4 w-4 text-purple-400" />
+                          <BookOpenCheck className="h-4 w-4 text-purple-400" />{" "}
                           Mini / Short Booklet PDF
                         </Label>
                         <div className="flex gap-2">
@@ -1204,193 +1798,165 @@ export default function SyllabusAdminPage() {
               </div>
             )}
 
-            {/* ── NEW: Test Scope PDF ── */}
+            {/* ── Test additional PDFs: scope + answer sheet ── */}
             {isTest && (
-              <div className="border border-zinc-700 rounded-lg p-4">
-                {!showTestScope ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowTestScope(true)}
-                    className="text-emerald-400 border-emerald-800"
-                  >
-                    <FileSearch className="h-4 w-4 mr-2" />+ Add Test Scope PDF
-                    (optional)
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm flex items-center gap-2">
-                        <FileSearch className="h-4 w-4 text-emerald-400" />
-                        Test Scope / Study Guide PDF
-                      </Label>
-                      <div className="flex gap-2">
-                        {editingId && currentItem?.testScopePdfViewLink && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-400 text-xs"
-                            onClick={async () => {
-                              if (confirm("Remove test scope PDF?")) {
-                                await clearTestScope({ id: editingId });
-                                toast.success("Test scope removed");
-                                setShowTestScope(false);
-                                setTestScopeFile(null);
-                                setTestScopeTitle("");
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" /> Remove
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setShowTestScope(false);
-                            setTestScopeFile(null);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <Input
-                      placeholder="Scope title (e.g. Term 2 Test Scope)"
-                      value={testScopeTitle}
-                      onChange={(e) => setTestScopeTitle(e.target.value)}
-                    />
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) =>
-                        setTestScopeFile(e.target.files?.[0] || null)
-                      }
-                    />
-                    {currentItem?.testScopePdfViewLink && !testScopeFile && (
-                      <p className="text-xs text-emerald-400">
-                        ✓ Scope already uploaded — upload new to replace
-                      </p>
-                    )}
-                    {testScopeFile && (
-                      <p className="text-green-400 text-sm">
-                        ✓ {testScopeFile.name}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── NEW: Extra Teaching / Resource YouTube Links (all categories) ── */}
-            {formData.category && (
-              <div className="border border-zinc-700 rounded-lg p-4">
-                {!showTeachingLinks ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowTeachingLinks(true);
-                      if (teachingLinks.length === 0) addTeachingLink();
-                    }}
-                    className="text-amber-400 border-amber-800"
-                  >
-                    <FaYoutube className="h-4 w-4 mr-2" />+ Add Extra Teaching
-                    YouTube Links (optional)
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="flex items-center gap-2">
-                        <FaYoutube className="h-4 w-4 text-amber-400" />
-                        Extra Teaching / Resource Links
-                      </Label>
-                      <div className="flex gap-2">
-                        {editingId && currentItem?.teachingLinks?.length && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-400 text-xs"
-                            onClick={async () => {
-                              if (confirm("Remove all teaching links?")) {
-                                await clearTeachingLinks({ id: editingId });
-                                toast.success("Teaching links removed");
-                                setTeachingLinks([]);
-                                setShowTeachingLinks(false);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" /> Clear All
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={addTeachingLink}
-                        >
-                          <Plus className="h-4 w-4 mr-1" /> Add Link
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowTeachingLinks(false)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    {teachingLinks.map((link, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-zinc-800 p-3 rounded-md"
-                      >
-                        <Input
-                          placeholder="Link Title"
-                          value={link.title}
-                          onChange={(e) =>
-                            updateTeachingLink(index, "title", e.target.value)
-                          }
-                        />
-                        <Input
-                          placeholder="YouTube URL"
-                          value={link.url}
-                          onChange={(e) =>
-                            updateTeachingLink(index, "url", e.target.value)
-                          }
-                        />
+              <div className="space-y-3">
+                {/* Test Scope PDF */}
+                <div className="border border-zinc-700 rounded-lg p-4">
+                  {!showTestScope ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTestScope(true)}
+                      className="text-emerald-400 border-emerald-800"
+                    >
+                      <FileSearch className="h-4 w-4 mr-2" />+ Add Test Scope
+                      PDF (optional)
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-sm flex items-center gap-2">
+                          <FileSearch className="h-4 w-4 text-emerald-400" />{" "}
+                          Test Scope / Study Guide PDF
+                        </Label>
                         <div className="flex gap-2">
-                          <Input
-                            placeholder="Short description (optional)"
-                            value={link.description}
-                            onChange={(e) =>
-                              updateTeachingLink(
-                                index,
-                                "description",
-                                e.target.value,
-                              )
-                            }
-                          />
+                          {editingId && currentItem?.testScopePdfViewLink && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-400 text-xs"
+                              onClick={async () => {
+                                if (confirm("Remove test scope PDF?")) {
+                                  await clearTestScope({ id: editingId });
+                                  toast.success("Test scope removed");
+                                  setShowTestScope(false);
+                                  setTestScopeFile(null);
+                                  setTestScopeTitle("");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" /> Remove
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeTeachingLink(index)}
-                            className="text-red-400 flex-shrink-0"
+                            onClick={() => {
+                              setShowTestScope(false);
+                              setTestScopeFile(null);
+                            }}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <Input
+                        placeholder="Scope title (e.g. Term 2 Test Scope)"
+                        value={testScopeTitle}
+                        onChange={(e) => setTestScopeTitle(e.target.value)}
+                      />
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) =>
+                          setTestScopeFile(e.target.files?.[0] || null)
+                        }
+                      />
+                      {currentItem?.testScopePdfViewLink && !testScopeFile && (
+                        <p className="text-xs text-emerald-400">
+                          ✓ Scope already uploaded — upload new to replace
+                        </p>
+                      )}
+                      {testScopeFile && (
+                        <p className="text-green-400 text-sm">
+                          ✓ {testScopeFile.name}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* NEW: Test Answer Sheet PDF */}
+                <div className="border border-zinc-700 rounded-lg p-4">
+                  {!showTestAnswerSheet ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTestAnswerSheet(true)}
+                      className="text-blue-400 border-blue-800"
+                    >
+                      <FileCheck className="h-4 w-4 mr-2" />+ Add Answer Sheet
+                      PDF (optional)
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-sm flex items-center gap-2">
+                          <FileCheck className="h-4 w-4 text-blue-400" /> Test
+                          Answer Sheet PDF
+                        </Label>
+                        <div className="flex gap-2">
+                          {editingId &&
+                            currentItem?.testAnswerSheetViewLink && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-400 text-xs"
+                                onClick={async () => {
+                                  if (confirm("Remove answer sheet PDF?")) {
+                                    await clearTestAnswerSheet({
+                                      id: editingId,
+                                    });
+                                    toast.success("Answer sheet removed");
+                                    setShowTestAnswerSheet(false);
+                                    setTestAnswerSheetFile(null);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" /> Remove
+                              </Button>
+                            )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setShowTestAnswerSheet(false);
+                              setTestAnswerSheetFile(null);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) =>
+                          setTestAnswerSheetFile(e.target.files?.[0] || null)
+                        }
+                      />
+                      {currentItem?.testAnswerSheetViewLink &&
+                        !testAnswerSheetFile && (
+                          <p className="text-xs text-emerald-400">
+                            ✓ Answer sheet already uploaded — upload new to
+                            replace
+                          </p>
+                        )}
+                      {testAnswerSheetFile && (
+                        <p className="text-green-400 text-sm">
+                          ✓ {testAnswerSheetFile.name}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

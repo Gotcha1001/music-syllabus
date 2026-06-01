@@ -1,4 +1,3 @@
-// // app/api/upload-syllabus/route.ts
 // import { NextRequest, NextResponse } from "next/server";
 // import { auth } from "@clerk/nextjs/server";
 // import { uploadToDrive } from "@/lib/googleDrive";
@@ -12,7 +11,6 @@
 //   try {
 //     const authResult = await auth();
 //     const { userId } = authResult;
-
 //     if (!userId) {
 //       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 //     }
@@ -36,9 +34,13 @@
 //       | "booklet"
 //       | "clapping"
 //       | "test";
+//     // bookletType: "working" | "answer" | "mini" | "single" | "testScope"
 //     const bookletType = (formData.get("bookletType") as string) || "single";
 //     const description = formData.get("description") as string | null;
 //     const youtubeRaw = formData.get("youtubeLinks") as string | null;
+//     const teachingRaw = formData.get("teachingLinks") as string | null;
+//     const miniBookletTitle = formData.get("miniBookletTitle") as string | null;
+//     const testScopeTitle = formData.get("testScopeTitle") as string | null;
 
 //     if (!title || !grade || !termStr || !category) {
 //       return NextResponse.json(
@@ -48,11 +50,9 @@
 //     }
 
 //     const term = parseInt(termStr);
-
-//     // Convert string ID to Convex ID if present
 //     const id = idStr ? (idStr as Id<"syllabusContent">) : undefined;
 
-//     // Upload file if provided
+//     // Upload file to Google Drive if provided
 //     let driveResponse: {
 //       fileId: string;
 //       webViewLink: string;
@@ -63,47 +63,65 @@
 //       driveResponse = await uploadToDrive(file);
 //     }
 
-//     // Parse YouTube links
+//     // Parse link arrays
 //     const youtubeLinks = youtubeRaw ? JSON.parse(youtubeRaw) : undefined;
+//     const teachingLinks = teachingRaw ? JSON.parse(teachingRaw) : undefined;
 
-//     const payload = {
+//     const payload: Record<string, unknown> = {
 //       id,
 //       title,
 //       grade,
 //       term,
 //       category,
 //       description: description || undefined,
-//       youtubeLinks: category === "songs" ? youtubeLinks : undefined,
-
-//       workingBookletDriveId:
-//         category === "booklet" && bookletType === "working"
-//           ? driveResponse?.fileId
-//           : undefined,
-//       workingBookletViewLink:
-//         category === "booklet" && bookletType === "working"
-//           ? driveResponse?.webViewLink
-//           : undefined,
-
-//       answerBookletDriveId:
-//         category === "booklet" && bookletType === "answer"
-//           ? driveResponse?.fileId
-//           : undefined,
-//       answerBookletViewLink:
-//         category === "booklet" && bookletType === "answer"
-//           ? driveResponse?.webViewLink
-//           : undefined,
-
-//       clappingPdfDriveId:
-//         category === "clapping" ? driveResponse?.fileId : undefined,
-//       clappingPdfViewLink:
-//         category === "clapping" ? driveResponse?.webViewLink : undefined,
-
-//       testPdfDriveId: category === "test" ? driveResponse?.fileId : undefined,
-//       testPdfViewLink:
-//         category === "test" ? driveResponse?.webViewLink : undefined,
 //     };
 
-//     await convexClient.mutation(api.syllabus.upsert, payload);
+//     // ── Songs ──
+//     if (category === "songs" && youtubeLinks !== undefined) {
+//       payload.youtubeLinks = youtubeLinks;
+//     }
+
+//     // ── Teaching links (any category) ──
+//     if (teachingLinks !== undefined) {
+//       payload.teachingLinks = teachingLinks;
+//     }
+
+//     // ── Booklet variants ──
+//     if (category === "booklet" && bookletType === "working" && driveResponse) {
+//       payload.workingBookletDriveId = driveResponse.fileId;
+//       payload.workingBookletViewLink = driveResponse.webViewLink;
+//     }
+//     if (category === "booklet" && bookletType === "answer" && driveResponse) {
+//       payload.answerBookletDriveId = driveResponse.fileId;
+//       payload.answerBookletViewLink = driveResponse.webViewLink;
+//     }
+//     if (category === "booklet" && bookletType === "mini" && driveResponse) {
+//       payload.miniBookletDriveId = driveResponse.fileId;
+//       payload.miniBookletViewLink = driveResponse.webViewLink;
+//       payload.miniBookletTitle = miniBookletTitle || "Mini Booklet";
+//     }
+
+//     // ── Clapping ──
+//     if (category === "clapping" && driveResponse) {
+//       payload.clappingPdfDriveId = driveResponse.fileId;
+//       payload.clappingPdfViewLink = driveResponse.webViewLink;
+//     }
+
+//     // ── Test (main PDF) ──
+//     if (category === "test" && bookletType === "single" && driveResponse) {
+//       payload.testPdfDriveId = driveResponse.fileId;
+//       payload.testPdfViewLink = driveResponse.webViewLink;
+//     }
+
+//     // ── Test Scope PDF ──
+//     if (category === "test" && bookletType === "testScope" && driveResponse) {
+//       payload.testScopePdfDriveId = driveResponse.fileId;
+//       payload.testScopePdfViewLink = driveResponse.webViewLink;
+//       payload.testScopeTitle = testScopeTitle || "Test Scope";
+//     }
+
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     await convexClient.mutation(api.syllabus.upsert, payload as any);
 
 //     return NextResponse.json({
 //       success: true,
@@ -131,6 +149,7 @@ export async function POST(req: NextRequest) {
   try {
     const authResult = await auth();
     const { userId } = authResult;
+
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -153,9 +172,12 @@ export async function POST(req: NextRequest) {
       | "songs"
       | "booklet"
       | "clapping"
-      | "test";
-    // bookletType: "working" | "answer" | "mini" | "single" | "testScope"
+      | "test"
+      | "youtubeLinks"; // NEW
+
+    // bookletType: "working" | "answer" | "mini" | "single" | "testScope" | "testAnswerSheet"
     const bookletType = (formData.get("bookletType") as string) || "single";
+
     const description = formData.get("description") as string | null;
     const youtubeRaw = formData.get("youtubeLinks") as string | null;
     const teachingRaw = formData.get("teachingLinks") as string | null;
@@ -201,8 +223,9 @@ export async function POST(req: NextRequest) {
       payload.youtubeLinks = youtubeLinks;
     }
 
-    // ── Teaching links (any category) ──
-    if (teachingLinks !== undefined) {
+    // ── Extra YouTube Links (standalone category) ──
+    // teachingLinks array is used as the link store for this category
+    if (category === "youtubeLinks" && teachingLinks !== undefined) {
       payload.teachingLinks = teachingLinks;
     }
 
@@ -211,10 +234,12 @@ export async function POST(req: NextRequest) {
       payload.workingBookletDriveId = driveResponse.fileId;
       payload.workingBookletViewLink = driveResponse.webViewLink;
     }
+
     if (category === "booklet" && bookletType === "answer" && driveResponse) {
       payload.answerBookletDriveId = driveResponse.fileId;
       payload.answerBookletViewLink = driveResponse.webViewLink;
     }
+
     if (category === "booklet" && bookletType === "mini" && driveResponse) {
       payload.miniBookletDriveId = driveResponse.fileId;
       payload.miniBookletViewLink = driveResponse.webViewLink;
@@ -227,7 +252,7 @@ export async function POST(req: NextRequest) {
       payload.clappingPdfViewLink = driveResponse.webViewLink;
     }
 
-    // ── Test (main PDF) ──
+    // ── Test main PDF ──
     if (category === "test" && bookletType === "single" && driveResponse) {
       payload.testPdfDriveId = driveResponse.fileId;
       payload.testPdfViewLink = driveResponse.webViewLink;
@@ -238,6 +263,16 @@ export async function POST(req: NextRequest) {
       payload.testScopePdfDriveId = driveResponse.fileId;
       payload.testScopePdfViewLink = driveResponse.webViewLink;
       payload.testScopeTitle = testScopeTitle || "Test Scope";
+    }
+
+    // ── NEW: Test Answer Sheet PDF ──
+    if (
+      category === "test" &&
+      bookletType === "testAnswerSheet" &&
+      driveResponse
+    ) {
+      payload.testAnswerSheetDriveId = driveResponse.fileId;
+      payload.testAnswerSheetViewLink = driveResponse.webViewLink;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

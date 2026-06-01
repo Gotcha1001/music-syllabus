@@ -5,7 +5,14 @@
 // import { api } from "../../../../../convex/_generated/api";
 // import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // import { Button } from "@/components/ui/button";
-// import { Eye, BookOpen, Award, FileText } from "lucide-react";
+// import {
+//   Eye,
+//   BookOpen,
+//   Award,
+//   FileText,
+//   BookOpenCheck,
+//   FileSearch,
+// } from "lucide-react";
 // import { motion } from "framer-motion";
 // import { FaYoutube } from "react-icons/fa";
 
@@ -15,10 +22,15 @@
 //   category: "songs" | "booklet" | "clapping" | "test";
 //   description?: string;
 //   youtubeLinks?: { title: string; url: string; duration?: string }[];
+//   teachingLinks?: { title: string; url: string; description?: string }[];
 //   workingBookletViewLink?: string;
 //   answerBookletViewLink?: string;
+//   miniBookletViewLink?: string;
+//   miniBookletTitle?: string;
 //   clappingPdfViewLink?: string;
 //   testPdfViewLink?: string;
+//   testScopePdfViewLink?: string;
+//   testScopeTitle?: string;
 // };
 
 // type Category = {
@@ -30,7 +42,6 @@
 
 // // ── Helpers ──────────────────────────────────────────────────────────────────
 
-// // "grade-r" → "Grade R" | "grade-1" → "Grade 1"
 // function slugToGrade(slug: string): string {
 //   return slug
 //     .split("-")
@@ -38,7 +49,6 @@
 //     .join(" ");
 // }
 
-// // "term-2" → 2 | "term-1" → 1
 // function slugToTerm(slug: string): number {
 //   const n = parseInt(slug.replace("term-", ""), 10);
 //   return Number.isNaN(n) ? 1 : n;
@@ -68,18 +78,54 @@
 //   },
 // ];
 
+// // ── Reusable Teaching Links section ──────────────────────────────────────────
+
+// function TeachingLinksSection({
+//   links,
+// }: {
+//   links: SyllabusItem["teachingLinks"];
+// }) {
+//   if (!links?.length) return null;
+//   return (
+//     <div className="mt-4 pt-4 border-t border-zinc-700">
+//       <p className="text-xs font-semibold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1">
+//         <FaYoutube className="h-3 w-3" /> Extra Teaching Resources
+//       </p>
+//       <div className="space-y-2">
+//         {links.map((link, i) => (
+//           <a
+//             key={i}
+//             href={link.url}
+//             target="_blank"
+//             rel="noopener noreferrer"
+//             className="flex flex-col gap-0.5 text-amber-300 hover:text-amber-200 hover:underline"
+//           >
+//             <span className="flex items-center gap-2 text-sm">
+//               <FaYoutube className="h-4 w-4 flex-shrink-0" />
+//               {link.title}
+//             </span>
+//             {link.description && (
+//               <span className="text-xs text-zinc-500 pl-6">
+//                 {link.description}
+//               </span>
+//             )}
+//           </a>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
 // // ── Component ────────────────────────────────────────────────────────────────
 
 // export default function TermPage() {
-//   // Folder renamed to [grade]/[term]
-//   // useParams gives: { grade: "grade-1", term: "term-2" }
 //   const { grade: gradeSlug, term: termSlug } = useParams<{
 //     grade: string;
 //     term: string;
 //   }>();
 
-//   const grade = slugToGrade(gradeSlug ?? ""); // "Grade 1", "Grade R", …
-//   const termNumber = slugToTerm(termSlug ?? ""); // 1, 2, 3, 4
+//   const grade = slugToGrade(gradeSlug ?? "");
+//   const termNumber = slugToTerm(termSlug ?? "");
 
 //   const content = useQuery(api.syllabus.getByGradeAndTerm, {
 //     grade,
@@ -119,69 +165,99 @@
 //                 {item ? (
 //                   <>
 //                     {item.description && (
-//                       <p className="text-zinc-400">{item.description}</p>
+//                       <p className="text-zinc-400 text-sm">
+//                         {item.description}
+//                       </p>
 //                     )}
 
-//                     {/* Songs */}
+//                     {/* ── Songs ── */}
 //                     {cat.key === "songs" &&
 //                       item.youtubeLinks &&
 //                       item.youtubeLinks.length > 0 && (
-//                         <div className="space-y-3">
+//                         <div className="space-y-2">
 //                           {item.youtubeLinks.map((song, i) => (
 //                             <a
 //                               key={i}
 //                               href={song.url}
 //                               target="_blank"
 //                               rel="noopener noreferrer"
-//                               className="flex items-center gap-3 text-blue-400 hover:text-blue-300 hover:underline"
+//                               className="flex items-center gap-2 text-blue-400 hover:text-blue-300 hover:underline text-sm"
 //                             >
-//                               <FaYoutube className="h-5 w-5 flex-shrink-0" />
+//                               <FaYoutube className="h-4 w-4 flex-shrink-0" />
 //                               {song.title}
 //                             </a>
 //                           ))}
 //                         </div>
 //                       )}
 
-//                     {/* PDFs */}
-//                     {(cat.key === "booklet" ||
-//                       cat.key === "clapping" ||
-//                       cat.key === "test") && (
-//                       <div className="flex flex-wrap gap-3">
-//                         {item.workingBookletViewLink && (
-//                           <Button asChild variant="outline">
-//                             <a
-//                               href={item.workingBookletViewLink}
-//                               target="_blank"
-//                               rel="noopener noreferrer"
-//                             >
-//                               <Eye className="mr-2 h-4 w-4" /> Working Booklet
-//                             </a>
-//                           </Button>
+//                     {/* ── Booklet PDFs ── */}
+//                     {cat.key === "booklet" && (
+//                       <div className="space-y-3">
+//                         <div className="flex flex-wrap gap-2">
+//                           {item.workingBookletViewLink && (
+//                             <Button asChild variant="outline" size="sm">
+//                               <a
+//                                 href={item.workingBookletViewLink}
+//                                 target="_blank"
+//                                 rel="noopener noreferrer"
+//                               >
+//                                 <Eye className="mr-2 h-4 w-4" /> Working Booklet
+//                               </a>
+//                             </Button>
+//                           )}
+//                           {item.answerBookletViewLink && (
+//                             <Button asChild variant="outline" size="sm">
+//                               <a
+//                                 href={item.answerBookletViewLink}
+//                                 target="_blank"
+//                                 rel="noopener noreferrer"
+//                               >
+//                                 <Eye className="mr-2 h-4 w-4" /> Answer Booklet
+//                               </a>
+//                             </Button>
+//                           )}
+//                         </div>
+
+//                         {/* ── NEW: Mini Booklet ── */}
+//                         {item.miniBookletViewLink && (
+//                           <div className="pt-2 border-t border-zinc-700">
+//                             <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-1.5 flex items-center gap-1">
+//                               <BookOpenCheck className="h-3 w-3" /> Short
+//                               Version
+//                             </p>
+//                             <Button asChild variant="secondary" size="sm">
+//                               <a
+//                                 href={item.miniBookletViewLink}
+//                                 target="_blank"
+//                                 rel="noopener noreferrer"
+//                               >
+//                                 <BookOpenCheck className="mr-2 h-4 w-4" />
+//                                 {item.miniBookletTitle || "Mini Booklet"}
+//                               </a>
+//                             </Button>
+//                           </div>
 //                         )}
-//                         {item.answerBookletViewLink && (
-//                           <Button asChild variant="outline">
-//                             <a
-//                               href={item.answerBookletViewLink}
-//                               target="_blank"
-//                               rel="noopener noreferrer"
-//                             >
-//                               <Eye className="mr-2 h-4 w-4" /> Answer Booklet
-//                             </a>
-//                           </Button>
-//                         )}
-//                         {item.clappingPdfViewLink && (
-//                           <Button asChild variant="outline">
-//                             <a
-//                               href={item.clappingPdfViewLink}
-//                               target="_blank"
-//                               rel="noopener noreferrer"
-//                             >
-//                               <Eye className="mr-2 h-4 w-4" /> Clapping PDF
-//                             </a>
-//                           </Button>
-//                         )}
+//                       </div>
+//                     )}
+
+//                     {/* ── Clapping PDF ── */}
+//                     {cat.key === "clapping" && item.clappingPdfViewLink && (
+//                       <Button asChild variant="outline" size="sm">
+//                         <a
+//                           href={item.clappingPdfViewLink}
+//                           target="_blank"
+//                           rel="noopener noreferrer"
+//                         >
+//                           <Eye className="mr-2 h-4 w-4" /> Clapping PDF
+//                         </a>
+//                       </Button>
+//                     )}
+
+//                     {/* ── Test PDF + Scope ── */}
+//                     {cat.key === "test" && (
+//                       <div className="space-y-3">
 //                         {item.testPdfViewLink && (
-//                           <Button asChild variant="outline">
+//                           <Button asChild variant="outline" size="sm">
 //                             <a
 //                               href={item.testPdfViewLink}
 //                               target="_blank"
@@ -191,8 +267,30 @@
 //                             </a>
 //                           </Button>
 //                         )}
+
+//                         {/* ── NEW: Test Scope PDF ── */}
+//                         {item.testScopePdfViewLink && (
+//                           <div className="pt-2 border-t border-zinc-700">
+//                             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1.5 flex items-center gap-1">
+//                               <FileSearch className="h-3 w-3" /> Test Scope
+//                             </p>
+//                             <Button asChild variant="secondary" size="sm">
+//                               <a
+//                                 href={item.testScopePdfViewLink}
+//                                 target="_blank"
+//                                 rel="noopener noreferrer"
+//                               >
+//                                 <FileSearch className="mr-2 h-4 w-4" />
+//                                 {item.testScopeTitle || "Test Scope"}
+//                               </a>
+//                             </Button>
+//                           </div>
+//                         )}
 //                       </div>
 //                     )}
+
+//                     {/* ── NEW: Teaching Links (shown for all categories) ── */}
+//                     <TeachingLinksSection links={item.teachingLinks} />
 //                   </>
 //                 ) : (
 //                   <p className="text-zinc-500 italic py-8 text-center">
@@ -221,14 +319,15 @@ import {
   FileText,
   BookOpenCheck,
   FileSearch,
+  FileCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { FaYoutube } from "react-icons/fa";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type SyllabusItem = {
-  category: "songs" | "booklet" | "clapping" | "test";
+  category: "songs" | "booklet" | "clapping" | "test" | "youtubeLinks";
   description?: string;
   youtubeLinks?: { title: string; url: string; duration?: string }[];
   teachingLinks?: { title: string; url: string; description?: string }[];
@@ -240,6 +339,7 @@ type SyllabusItem = {
   testPdfViewLink?: string;
   testScopePdfViewLink?: string;
   testScopeTitle?: string;
+  testAnswerSheetViewLink?: string; // NEW
 };
 
 type Category = {
@@ -249,7 +349,7 @@ type Category = {
   color: string;
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function slugToGrade(slug: string): string {
   return slug
@@ -263,7 +363,7 @@ function slugToTerm(slug: string): number {
   return Number.isNaN(n) ? 1 : n;
 }
 
-// ── Static data ──────────────────────────────────────────────────────────────
+// ── Static data ───────────────────────────────────────────────────────────────
 
 const categories: Category[] = [
   { key: "songs", label: "Term Songs", icon: FaYoutube, color: "text-red-500" },
@@ -285,47 +385,15 @@ const categories: Category[] = [
     icon: FileText,
     color: "text-emerald-500",
   },
+  {
+    key: "youtubeLinks",
+    label: "Extra YouTube Links",
+    icon: FaYoutube,
+    color: "text-amber-400",
+  }, // NEW
 ];
 
-// ── Reusable Teaching Links section ──────────────────────────────────────────
-
-function TeachingLinksSection({
-  links,
-}: {
-  links: SyllabusItem["teachingLinks"];
-}) {
-  if (!links?.length) return null;
-  return (
-    <div className="mt-4 pt-4 border-t border-zinc-700">
-      <p className="text-xs font-semibold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1">
-        <FaYoutube className="h-3 w-3" /> Extra Teaching Resources
-      </p>
-      <div className="space-y-2">
-        {links.map((link, i) => (
-          <a
-            key={i}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col gap-0.5 text-amber-300 hover:text-amber-200 hover:underline"
-          >
-            <span className="flex items-center gap-2 text-sm">
-              <FaYoutube className="h-4 w-4 flex-shrink-0" />
-              {link.title}
-            </span>
-            {link.description && (
-              <span className="text-xs text-zinc-500 pl-6">
-                {link.description}
-              </span>
-            )}
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TermPage() {
   const { grade: gradeSlug, term: termSlug } = useParams<{
@@ -359,155 +427,204 @@ export default function TermPage() {
           );
 
           return (
-            <Card
+            <motion.div
               key={cat.key}
-              className="bg-zinc-900 border-purple-900/50 hover:border-purple-500 transition-all duration-300"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <cat.icon className={`h-6 w-6 ${cat.color}`} />
-                  {cat.label}
-                </CardTitle>
-              </CardHeader>
+              <Card className="bg-zinc-900 border-purple-900/50 hover:border-purple-500 transition-all duration-300 h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <cat.icon className={`h-6 w-6 ${cat.color}`} />
+                    {cat.label}
+                  </CardTitle>
+                </CardHeader>
 
-              <CardContent className="space-y-4 min-h-[200px]">
-                {item ? (
-                  <>
-                    {item.description && (
-                      <p className="text-zinc-400 text-sm">
-                        {item.description}
-                      </p>
-                    )}
+                <CardContent className="space-y-4 min-h-[160px]">
+                  {item ? (
+                    <>
+                      {item.description && (
+                        <p className="text-zinc-400 text-sm">
+                          {item.description}
+                        </p>
+                      )}
 
-                    {/* ── Songs ── */}
-                    {cat.key === "songs" &&
-                      item.youtubeLinks &&
-                      item.youtubeLinks.length > 0 && (
-                        <div className="space-y-2">
-                          {item.youtubeLinks.map((song, i) => (
-                            <a
-                              key={i}
-                              href={song.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-blue-400 hover:text-blue-300 hover:underline text-sm"
-                            >
-                              <FaYoutube className="h-4 w-4 flex-shrink-0" />
-                              {song.title}
-                            </a>
-                          ))}
+                      {/* ── Songs ── */}
+                      {cat.key === "songs" &&
+                        item.youtubeLinks &&
+                        item.youtubeLinks.length > 0 && (
+                          <div className="space-y-2">
+                            {item.youtubeLinks.map((song, i) => (
+                              <a
+                                key={i}
+                                href={song.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-400 hover:text-blue-300 hover:underline text-sm"
+                              >
+                                <FaYoutube className="h-4 w-4 flex-shrink-0" />
+                                {song.title}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
+                      {/* ── Booklet PDFs ── */}
+                      {cat.key === "booklet" && (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            {item.workingBookletViewLink && (
+                              <Button asChild variant="outline" size="sm">
+                                <a
+                                  href={item.workingBookletViewLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Eye className="mr-2 h-4 w-4" /> Working
+                                  Booklet
+                                </a>
+                              </Button>
+                            )}
+                            {item.answerBookletViewLink && (
+                              <Button asChild variant="outline" size="sm">
+                                <a
+                                  href={item.answerBookletViewLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Eye className="mr-2 h-4 w-4" /> Answer
+                                  Booklet
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Mini Booklet */}
+                          {item.miniBookletViewLink && (
+                            <div className="pt-2 border-t border-zinc-700">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-1.5 flex items-center gap-1">
+                                <BookOpenCheck className="h-3 w-3" /> Short
+                                Version
+                              </p>
+                              <Button asChild variant="secondary" size="sm">
+                                <a
+                                  href={item.miniBookletViewLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <BookOpenCheck className="mr-2 h-4 w-4" />
+                                  {item.miniBookletTitle || "Mini Booklet"}
+                                </a>
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                    {/* ── Booklet PDFs ── */}
-                    {cat.key === "booklet" && (
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap gap-2">
-                          {item.workingBookletViewLink && (
+                      {/* ── Clapping PDF ── */}
+                      {cat.key === "clapping" && item.clappingPdfViewLink && (
+                        <Button asChild variant="outline" size="sm">
+                          <a
+                            href={item.clappingPdfViewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Eye className="mr-2 h-4 w-4" /> Clapping PDF
+                          </a>
+                        </Button>
+                      )}
+
+                      {/* ── Test: PDF + Scope + Answer Sheet ── */}
+                      {cat.key === "test" && (
+                        <div className="space-y-3">
+                          {/* Main test PDF */}
+                          {item.testPdfViewLink && (
                             <Button asChild variant="outline" size="sm">
                               <a
-                                href={item.workingBookletViewLink}
+                                href={item.testPdfViewLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                <Eye className="mr-2 h-4 w-4" /> Working Booklet
+                                <Eye className="mr-2 h-4 w-4" /> Term Test
                               </a>
                             </Button>
                           )}
-                          {item.answerBookletViewLink && (
-                            <Button asChild variant="outline" size="sm">
-                              <a
-                                href={item.answerBookletViewLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Eye className="mr-2 h-4 w-4" /> Answer Booklet
-                              </a>
-                            </Button>
+
+                          {/* Test Scope PDF */}
+                          {item.testScopePdfViewLink && (
+                            <div className="pt-2 border-t border-zinc-700">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1.5 flex items-center gap-1">
+                                <FileSearch className="h-3 w-3" /> Test Scope
+                              </p>
+                              <Button asChild variant="secondary" size="sm">
+                                <a
+                                  href={item.testScopePdfViewLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <FileSearch className="mr-2 h-4 w-4" />
+                                  {item.testScopeTitle || "Test Scope"}
+                                </a>
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* NEW: Test Answer Sheet PDF */}
+                          {item.testAnswerSheetViewLink && (
+                            <div className="pt-2 border-t border-zinc-700">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1.5 flex items-center gap-1">
+                                <FileCheck className="h-3 w-3" /> Answer Sheet
+                              </p>
+                              <Button asChild variant="secondary" size="sm">
+                                <a
+                                  href={item.testAnswerSheetViewLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <FileCheck className="mr-2 h-4 w-4" />
+                                  Answer Sheet
+                                </a>
+                              </Button>
+                            </div>
                           )}
                         </div>
+                      )}
 
-                        {/* ── NEW: Mini Booklet ── */}
-                        {item.miniBookletViewLink && (
-                          <div className="pt-2 border-t border-zinc-700">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-1.5 flex items-center gap-1">
-                              <BookOpenCheck className="h-3 w-3" /> Short
-                              Version
-                            </p>
-                            <Button asChild variant="secondary" size="sm">
+                      {/* ── NEW: Extra YouTube Links (standalone category) ── */}
+                      {cat.key === "youtubeLinks" &&
+                        item.teachingLinks &&
+                        item.teachingLinks.length > 0 && (
+                          <div className="space-y-2">
+                            {item.teachingLinks.map((link, i) => (
                               <a
-                                href={item.miniBookletViewLink}
+                                key={i}
+                                href={link.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                className="flex flex-col gap-0.5 text-amber-300 hover:text-amber-200 hover:underline"
                               >
-                                <BookOpenCheck className="mr-2 h-4 w-4" />
-                                {item.miniBookletTitle || "Mini Booklet"}
+                                <span className="flex items-center gap-2 text-sm">
+                                  <FaYoutube className="h-4 w-4 flex-shrink-0" />
+                                  {link.title}
+                                </span>
+                                {link.description && (
+                                  <span className="text-xs text-zinc-500 pl-6">
+                                    {link.description}
+                                  </span>
+                                )}
                               </a>
-                            </Button>
+                            ))}
                           </div>
                         )}
-                      </div>
-                    )}
-
-                    {/* ── Clapping PDF ── */}
-                    {cat.key === "clapping" && item.clappingPdfViewLink && (
-                      <Button asChild variant="outline" size="sm">
-                        <a
-                          href={item.clappingPdfViewLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Eye className="mr-2 h-4 w-4" /> Clapping PDF
-                        </a>
-                      </Button>
-                    )}
-
-                    {/* ── Test PDF + Scope ── */}
-                    {cat.key === "test" && (
-                      <div className="space-y-3">
-                        {item.testPdfViewLink && (
-                          <Button asChild variant="outline" size="sm">
-                            <a
-                              href={item.testPdfViewLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Eye className="mr-2 h-4 w-4" /> Term Test
-                            </a>
-                          </Button>
-                        )}
-
-                        {/* ── NEW: Test Scope PDF ── */}
-                        {item.testScopePdfViewLink && (
-                          <div className="pt-2 border-t border-zinc-700">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1.5 flex items-center gap-1">
-                              <FileSearch className="h-3 w-3" /> Test Scope
-                            </p>
-                            <Button asChild variant="secondary" size="sm">
-                              <a
-                                href={item.testScopePdfViewLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <FileSearch className="mr-2 h-4 w-4" />
-                                {item.testScopeTitle || "Test Scope"}
-                              </a>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* ── NEW: Teaching Links (shown for all categories) ── */}
-                    <TeachingLinksSection links={item.teachingLinks} />
-                  </>
-                ) : (
-                  <p className="text-zinc-500 italic py-8 text-center">
-                    No content uploaded yet for this category.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                    </>
+                  ) : (
+                    <p className="text-zinc-500 italic py-8 text-center">
+                      No content uploaded yet for this category.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           );
         })}
       </div>
