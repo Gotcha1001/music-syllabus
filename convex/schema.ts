@@ -81,6 +81,7 @@ export default defineSchema({
       v.literal("booklet"),
       v.literal("clapping"),
       v.literal("test"),
+      v.literal("youtubeLinks"), // NEW: standalone Extra YouTube Links per term
     ),
     title: v.string(),
     description: v.optional(v.string()),
@@ -96,7 +97,7 @@ export default defineSchema({
       ),
     ),
 
-    // ── NEW: Extra teaching/resource YouTube links (optional, shown on every term) ──
+    // ── Extra teaching/resource YouTube links (now its own category) ──
     teachingLinks: v.optional(
       v.array(
         v.object({
@@ -113,7 +114,7 @@ export default defineSchema({
     answerBookletDriveId: v.optional(v.string()),
     answerBookletViewLink: v.optional(v.string()),
 
-    // ── NEW: Mini / shorter booklet version (optional) ──
+    // ── Mini / shorter booklet version (optional) ──
     miniBookletDriveId: v.optional(v.string()),
     miniBookletViewLink: v.optional(v.string()),
     miniBookletTitle: v.optional(v.string()),
@@ -126,10 +127,14 @@ export default defineSchema({
     testPdfDriveId: v.optional(v.string()),
     testPdfViewLink: v.optional(v.string()),
 
-    // ── NEW: Test scope PDF (optional) ──
+    // ── Test Scope PDF (optional) ──
     testScopePdfDriveId: v.optional(v.string()),
     testScopePdfViewLink: v.optional(v.string()),
     testScopeTitle: v.optional(v.string()),
+
+    // ── NEW: Test Answer Sheet PDF (optional) ──
+    testAnswerSheetDriveId: v.optional(v.string()),
+    testAnswerSheetViewLink: v.optional(v.string()),
 
     uploadedBy: v.string(),
     uploadedAt: v.number(),

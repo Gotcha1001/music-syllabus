@@ -69,8 +69,9 @@ export default function Navbar() {
         </SignedOut>
 
         <SignedIn>
-          {/* Admin Access Button */}
-          <Button
+          {/* Admin Access Button 
+          
+                 <Button
             variant="ghost"
             onClick={() => setShowAdminModal(true)}
             className="text-white hover:bg-purple-900/50 flex items-center gap-2"
@@ -78,14 +79,21 @@ export default function Navbar() {
             <Shield className="h-4 w-4" />
             Admin
           </Button>
+          */}
 
           {role === "teacher" && (
-            <Link href="/dashboard/teacher" className="text-white hover:opacity-80">
+            <Link
+              href="/dashboard/teacher"
+              className="text-white hover:opacity-80"
+            >
               Schedule
             </Link>
           )}
           {role === "student" && (
-            <Link href="/dashboard/student" className="text-white hover:opacity-80">
+            <Link
+              href="/dashboard/student"
+              className="text-white hover:opacity-80"
+            >
               My Lessons
             </Link>
           )}
